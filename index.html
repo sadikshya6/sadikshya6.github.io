@@ -1,8 +1,237 @@
-<html>
-  <head>
-  <title>Sadikshya Rijal</title>
-  </head>
-  <body>
-    <h1>Hello, I am Sadikshya!</h1>
-  </body>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sadikshya Rijal</title>
+<style>
+  :root {
+    --fg: #111;
+    --muted: #6b6b6b;
+    --accent: #3a7a5e;
+    --bg: #ffffff;
+    --line: #e5e5e5;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .container {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 60px 40px 80px;
+  }
+  .profile-img {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    margin-bottom: 24px;
+  }
+  h1 {
+    font-size: 2.4rem;
+    font-weight: 700;
+    margin: 0 0 40px 0;
+    letter-spacing: -0.5px;
+  }
+  h2.intro {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin: 0 0 12px 0;
+    line-height: 1.4;
+  }
+  h2.intro .accent {
+    color: var(--muted);
+    font-weight: 400;
+  }
+  .intro-text {
+    color: var(--muted);
+    max-width: 780px;
+    margin: 0 0 60px 0;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 60px;
+    margin-top: 40px;
+  }
+  .section-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fg);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 16px;
+  }
+  .latest-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--fg);
+    text-align: right;
+    margin-bottom: 24px;
+  }
+  nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  nav li {
+    margin-bottom: 10px;
+  }
+  nav a {
+    text-decoration: none;
+    color: var(--fg);
+    font-size: 0.95rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+  nav a:hover {
+    color: var(--accent);
+  }
+  .post {
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 28px;
+    margin-bottom: 28px;
+  }
+  .post:last-child {
+    border-bottom: none;
+  }
+  .post-tag {
+    display: inline-block;
+    background: #f0f0f0;
+    color: var(--muted);
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    padding: 4px 10px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .post-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .post-excerpt {
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin: 0 0 14px 0;
+  }
+  .read-more {
+    font-size: 0.8rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--fg);
+    text-decoration: none;
+    border-bottom: 1px solid var(--fg);
+    padding-bottom: 2px;
+  }
+  .read-more:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  footer {
+    margin-top: 80px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 0.85rem;
+    text-align: center;
+  }
+  footer a {
+    color: var(--muted);
+    text-decoration: none;
+    margin: 0 8px;
+  }
+  footer a:hover {
+    color: var(--accent);
+  }
+  @media (max-width: 720px) {
+    .container { padding: 40px 24px; }
+    .layout { grid-template-columns: 1fr; gap: 40px; }
+    .latest-title { text-align: left; }
+    h1 { font-size: 2rem; }
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <img src="profile_image.jpg" alt="Sadikshya Rijal" class="profile-img" />
+    <h1>Hi, there!</h1>
+
+    <h2 class="intro">
+      I'm <span class="accent">Sadikshya</span>, and I like to <span class="accent">build</span> at the intersection of biology and engineering.
+    </h2>
+    <p class="intro-text">
+      I'm a PhD candidate in Biological Design at Arizona State University, where I work on synthetic gene circuits, CRISPR interference, and biomolecular condensates. Outside the lab, I help run Nucleate Arizona and enjoy mentoring early-career scientists.
+    </p>
+
+    <div class="layout">
+
+      <nav>
+        <div class="section-title">Quick Links</div>
+        <ul>
+          <li><a href="#about">About Me</a></li>
+          <li><a href="#research">Research</a></li>
+          <li><a href="#publications">Publications</a></li>
+          <li><a href="resume.pdf">Resume</a></li>
+          <li><a href="https://scholar.google.com/citations?user=i0OyIREAAAAJ">Scholar</a></li>
+          <li><a href="https://linkedin.com/in/sadikshyarijal">LinkedIn</a></li>
+        </ul>
+      </nav>
+
+      <div class="posts">
+        <div class="latest-title">Latest Work</div>
+
+        <article class="post" id="research">
+          <span class="post-tag">Research</span>
+          <h3 class="post-title">CRISPRi-Linked Multi-Module Feedback Loops</h3>
+          <p class="post-excerpt">
+            Integrating dCas9 into the E. coli genome to implement CRISPR interference across two gene modules — mitigating winner-take-all resource competition and improving synthetic circuit predictability.
+          </p>
+          <a href="https://doi.org/10.1101/2025.05.15.65435" class="read-more">Read More</a>
+        </article>
+
+        <article class="post" id="publications">
+          <span class="post-tag">Publication</span>
+          <h3 class="post-title">Phase Separation to Resolve Growth-Related Circuit Failures</h3>
+          <p class="post-excerpt">
+            Engineering biomolecular condensates as a strategy to stabilize synthetic gene circuits under growth feedback. Published in <em>Cell</em> (2025).
+          </p>
+          <a href="https://doi.org/10.1101/2024.11.01.621586" class="read-more">Read More</a>
+        </article>
+
+        <article class="post">
+          <span class="post-tag">Publication</span>
+          <h3 class="post-title">Evolutionary History of the Ku Protein</h3>
+          <p class="post-excerpt">
+            A phylogenetic study of the DNA repair protein Ku across eukaryotes and prokaryotes, using sequence data from NCBI and OrthoDB. Published in <em>PLOS ONE</em> (2025).
+          </p>
+          <a href="https://doi.org/10.1371/journal.pone.0308593" class="read-more">Read More</a>
+        </article>
+
+      </div>
+    </div>
+
+    <footer>
+      © 2026 Sadikshya Rijal ·
+      <a href="https://linkedin.com/in/sadikshyarijal">LinkedIn</a> ·
+      <a href="https://scholar.google.com/citations?user=i0OyIREAAAAJ">Google Scholar</a>
+    </footer>
+
+  </div>
+</body>
 </html>

@@ -1,8 +1,7 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sadikshya Rijal</title>
 <style>
   :root {
@@ -11,6 +10,26 @@
     --accent: #3a7a5e;
     --bg: #ffffff;
     --line: #e5e5e5;
+  }
+
+  /* ── Bio background canvas ── */
+  #bio-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .container {
+    position: relative;
+    z-index: 1;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #bio-canvas { opacity: 0.35; }
+  }
+  /* Hide bio canvas on small screens so it never crowds text */
+  @media (max-width: 720px) {
+    #bio-canvas { display: none; }
   }
   * { box-sizing: border-box; }
   html, body {
@@ -27,6 +46,7 @@
     margin: 0 auto;
     padding: 60px 40px 80px;
   }
+  /* (container z-index set above) */
   .profile-img {
     width: 110px;
     height: 110px;
@@ -165,18 +185,365 @@
     h1 { font-size: 2rem; }
   }
 </style>
-</head>
+<style id="ark-print" data-ark-managed="1" data-ark-settings="{&quot;paper&quot;:&quot;Letter&quot;,&quot;orientation&quot;:&quot;portrait&quot;,&quot;margin&quot;:&quot;normal&quot;}">@page {
+  size: 215.9mm 279.4mm portrait;
+  margin: 0.75in;
+}
+[data-ark-break="before"] { break-before: page; page-break-before: always; }
+[data-ark-break="after"]  { break-after: page;  page-break-after: always;  }
+[data-ark-break="avoid"]  { break-inside: avoid; page-break-inside: avoid; }
+@media print {
+  h1, h2, h3, h4, h5, h6 { break-after: avoid; page-break-after: avoid; }
+  img, table, figure, pre, blockquote { break-inside: avoid; page-break-inside: avoid; }
+  tr, li { break-inside: avoid; page-break-inside: avoid; }
+}
+@media screen {
+  [data-ark-break="before"] {
+    position: relative;
+    margin-top: 28px;
+    padding-top: 18px;
+    border-top: 2px dashed rgba(239, 68, 68, 0.85);
+  }
+  [data-ark-break="before"]::before {
+    content: "Page break · click to remove";
+    position: absolute;
+    top: -11px;
+    left: 8px;
+    padding: 1px 10px;
+    background: rgba(239, 68, 68, 0.95);
+    color: white;
+    font-size: 10px;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    pointer-events: auto;
+    cursor: pointer;
+    user-select: none;
+  }
+}</style><meta name="ark-html-kind" content="doc"></head>
 <body>
+
+<!-- ░░ Bio background: an organic, folded DNA ribbon on the left + a soft, generic cell with drifting condensates on the right ░░ -->
+<canvas id="bio-canvas" aria-hidden="true"></canvas>
+
+<script>
+(() => {
+  const canvas = document.getElementById('bio-canvas');
+  const ctx = canvas.getContext('2d');
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+  // Palette — soft, organic, tasteful
+  const GREEN = '58, 122, 94';      // accent strand
+  const TEAL  = '36, 90, 120';      // complement strand
+  const CORAL = '217, 119, 87';     // condensates / accent
+  const BLUE  = '80, 140, 170';     // base-pair accent
+
+  let W = 0, H = 0;
+  let scrollY = 0, targetScroll = 0;
+  let lastScroll = 0;                    // for measuring scroll velocity
+  let scrollActivity = 0;                // 0 = at rest, 1 = actively scrolling
+  let time = 0;
+  let condensates = [];
+
+  function leftAnchor() {
+    const contentLeft = Math.max(40, (W - 980) / 2);
+    // Push the helix deep into the left gutter so it sits well clear of text
+    return Math.max(28, contentLeft * 0.22);
+  }
+  function rightAnchor() {
+    const contentRight = W - Math.max(40, (W - 980) / 2);
+    // Push the cell further into the right gutter so it never crowds text
+    return Math.min(W - 70, contentRight + (W - contentRight) * 0.72);
+  }
+
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * DPR;
+    canvas.height = H * DPR;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    buildCondensates();
+  }
+
+  function buildCondensates() {
+    condensates = [];
+    const n = 6;
+    for (let i = 0; i < n; i++) {
+      // local coords inside the cell blob (drawn from origin)
+      const a = Math.random() * Math.PI * 2;
+      const rr = Math.random() * 30;
+      condensates.push({
+        x: Math.cos(a) * rr,
+        y: Math.sin(a) * rr * 0.85,
+        r: 3 + Math.random() * 4,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.0006 + Math.random() * 0.0012,
+        drift: 0.4 + Math.random() * 0.6
+      });
+    }
+  }
+
+  // ── Realistic B-form double helix (left) ──
+  // ~10 base pairs per turn, asymmetric major/minor grooves, depth shading.
+  // At rest: a clean, near-vertical double helix that reads as real DNA.
+  // While scrolling: gentle folds and S-curves emerge driven by scrollActivity.
+  function drawHelix() {
+    const anchorX = leftAnchor();
+    const N = 260;                       // dense sampling for smooth curves
+    const startY = -160 + (scrollY * 0.10);
+    const spanY  = H + 320;
+
+    const act = scrollActivity;          // 0..1 — gates folding & extra motion
+    const t = time * 0.00045;
+
+    // B-form DNA: ~10.5 bp per helical turn. We sample N points along the strand,
+    // so the angular step per sample sets how many "turns" fit on screen.
+    const turnsOnScreen = 5.5;           // total turns visible across spanY (visually pleasant)
+    const twistRate = (turnsOnScreen * Math.PI * 2) / N;
+    const radiusBase = 17;               // slim, B-form-ish cross-section
+    const radiusWobble = 2;
+
+    // Folds scale with scroll activity (subtle at rest, full while scrolling)
+    const foldAmp1 = 30 * act;
+    const foldAmp2 = 10 * act;
+    const foldAmp3 = 3  * act;
+
+    const ptsA = [];
+    const ptsB = [];
+
+    for (let i = 0; i <= N; i++) {
+      const u = i / N;                  // 0..1 along the strand
+      const y = startY + u * spanY;
+
+      // Spine x: layered sinusoids → organic S-curves when scrolling
+      const spine =
+        Math.sin(u * 2.1 + t * 1.3) * foldAmp1 +
+        Math.sin(u * 5.7 + t * 0.7) * foldAmp2 +
+        Math.sin(u * 13.0 + t * 2.1) * foldAmp3;
+
+      // Local tangent ≈ derivative of spine wrt y
+      const dSpine =
+        Math.cos(u * 2.1 + t * 1.3) * foldAmp1 * 2.1 +
+        Math.cos(u * 5.7 + t * 0.7) * foldAmp2 * 5.7 +
+        Math.cos(u * 13.0 + t * 2.1) * foldAmp3 * 13.0;
+      const tangentAngle = Math.atan2(dSpine, spanY);
+
+      // Helical rotation: constant twist + slow drift + scroll-linked spin
+      const angle = i * twistRate + t * 0.9 + scrollY * 0.010;
+      const radius = radiusBase + Math.sin(u * 3.0 + t * 1.5) * radiusWobble * (0.4 + act);
+
+      // B-form asymmetry: the two strands are offset by ~140° around the helix axis,
+      // NOT 180°. This is what produces the real major/minor groove pattern.
+      const STRAND_OFFSET = Math.PI * (140 / 180); // ≈ 2.443 rad
+      const angleA = angle;
+      const angleB = angle + STRAND_OFFSET;
+
+      // Cross-section vectors for each strand
+      const cxA = Math.cos(angleA) * radius;
+      const czA = Math.sin(angleA);                 // depth in [-1, 1]
+      const cxB = Math.cos(angleB) * radius;
+      const czB = Math.sin(angleB);
+
+      // Rotate cross-sections so the ribbon "folds" with the spine tangent
+      const rotAx = cxA * Math.cos(tangentAngle);
+      const rotAy = cxA * Math.sin(tangentAngle);
+      const rotBx = cxB * Math.cos(tangentAngle);
+      const rotBy = cxB * Math.sin(tangentAngle);
+
+      ptsA.push({ x: anchorX + spine + rotAx, y: y + rotAy, z: czA });
+      ptsB.push({ x: anchorX + spine + rotBx, y: y + rotBy, z: czB });
+    }
+
+    // ── Base-pair rungs: ~one per sampled point pair, but only when both strands
+    //    are roughly on the viewer-facing side so the helix reads as real 3D DNA. ──
+    const rungStep = 3;                  // draw ~one rung every 3 samples (≈ 10 per turn)
+    for (let i = 0; i < ptsA.length; i += rungStep) {
+      const a = ptsA[i], b = ptsB[i];
+      // Depth of the rung midpoint (front-facing rungs are brighter, back ones hidden)
+      const zMid = (a.z + b.z) / 2;
+      const depth = (zMid + 1) / 2;                 // 0 = back, 1 = front
+      if (depth < 0.30) continue;                    // hide rungs occluded by backbone
+      // Fainter overall, with gentle G·C vs A·T color variation
+      const alpha = 0.03 + depth * 0.11;             // <-- fainter
+      const isAT = (i % (rungStep * 2) === 0);
+      const rgb = isAT ? CORAL : BLUE;
+      ctx.strokeStyle = `rgba(${rgb}, ${alpha.toFixed(3)})`;
+      ctx.lineWidth = 0.55 + depth * 0.45;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+    }
+
+    // ── Sugar-phosphate backbones as smooth quadratic curves with depth shading ──
+    function drawSmoothBackbone(pts, rgb) {
+      if (pts.length < 3) return;
+      for (let i = 1; i < pts.length - 1; i++) {
+        const p0 = pts[i - 1];
+        const p1 = pts[i];
+        const p2 = pts[i + 1];
+        const mx1 = (p0.x + p1.x) / 2;
+        const my1 = (p0.y + p1.y) / 2;
+        const mx2 = (p1.x + p2.x) / 2;
+        const my2 = (p1.y + p2.y) / 2;
+        const z = p1.z;
+        const depth = (z + 1) / 2;                 // 0 back .. 1 front
+        // Strong front/back asymmetry → reads as a true 3D helix, but overall faint
+        const alpha = 0.06 + depth * 0.22;          // <-- fainter
+        ctx.strokeStyle = `rgba(${rgb}, ${alpha.toFixed(3)})`;
+        ctx.lineWidth = 1.0 + depth * 0.9;          // <-- slightly thinner
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(mx1, my1);
+        ctx.quadraticCurveTo(p1.x, p1.y, mx2, my2);
+        ctx.stroke();
+      }
+    }
+    drawSmoothBackbone(ptsA, GREEN);
+    drawSmoothBackbone(ptsB, TEAL);
+  }
+
+  // ── Generic cell with drifting condensates (right) ──
+  // No species, no labels, no rod shape — small, soft, decorative.
+  function drawCell() {
+    if (W < 1000) return;
+    const cx = rightAnchor();
+    const cy = H * 0.42;
+    const bob = Math.sin(time * 0.0005) * 6;
+    const tilt = Math.sin(time * 0.0003) * 0.04;
+
+    ctx.save();
+    ctx.translate(cx, cy + bob);
+    ctx.rotate(tilt);
+
+    // Organic blobby membrane: a perturbed ellipse using low-frequency sinusoids
+    const baseR = 42;
+    const aspect = 0.88;
+    const t = time * 0.0006;
+    const pts = [];
+    const STEPS = 90;
+    for (let i = 0; i <= STEPS; i++) {
+      const th = (i / STEPS) * Math.PI * 2;
+      const wobble =
+        Math.sin(th * 3 + t * 1.2) * 5 +
+        Math.sin(th * 5 - t * 0.8) * 3 +
+        Math.sin(th * 2 + t * 0.5) * 4;
+      const r = baseR + wobble;
+      pts.push({
+        x: Math.cos(th) * r,
+        y: Math.sin(th) * r * aspect
+      });
+    }
+
+    // Soft glow halo
+    const glow = ctx.createRadialGradient(0, 0, 6, 0, 0, baseR * 1.6);
+    glow.addColorStop(0, `rgba(${GREEN}, 0.05)`);
+    glow.addColorStop(1, `rgba(${GREEN}, 0)`);
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(0, 0, baseR * 1.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Outer membrane — smooth quadratic curve through wobble points
+    ctx.strokeStyle = `rgba(${GREEN}, 0.38)`;
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.moveTo((pts[0].x + pts[1].x) / 2, (pts[0].y + pts[1].y) / 2);
+    for (let i = 1; i < pts.length - 1; i++) {
+      const mx = (pts[i].x + pts[i + 1].x) / 2;
+      const my = (pts[i].y + pts[i + 1].y) / 2;
+      ctx.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
+    }
+    ctx.stroke();
+
+    // Inner membrane line — subtler, slightly inset
+    ctx.strokeStyle = `rgba(${GREEN}, 0.15)`;
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo((pts[0].x + pts[1].x) / 2 * 0.92, (pts[0].y + pts[1].y) / 2 * 0.92);
+    for (let i = 1; i < pts.length - 1; i++) {
+      const mx = (pts[i].x + pts[i + 1].x) / 2 * 0.92;
+      const my = (pts[i].y + pts[i + 1].y) / 2 * 0.92;
+      ctx.quadraticCurveTo(pts[i].x * 0.92, pts[i].y * 0.92, mx, my);
+    }
+    ctx.stroke();
+
+    // Condensates: soft drifting droplets that breathe
+    for (const c of condensates) {
+      c.phase += c.speed * 16;
+      const ox = c.x + Math.sin(c.phase) * c.drift * 2.2;
+      const oy = c.y + Math.cos(c.phase * 1.3) * c.drift * 1.8;
+      const breathe = 1 + Math.sin(c.phase * 2) * 0.09;
+      const rad = c.r * breathe;
+
+      const grad = ctx.createRadialGradient(ox, oy, 0, ox, oy, rad * 2.4);
+      grad.addColorStop(0, `rgba(${CORAL}, 0.26)`);
+      grad.addColorStop(0.5, `rgba(${CORAL}, 0.08)`);
+      grad.addColorStop(1, `rgba(${CORAL}, 0)`);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(ox, oy, rad * 2.4, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = `rgba(${CORAL}, 0.38)`;
+      ctx.beginPath();
+      ctx.arc(ox, oy, rad, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  // ── Main loop ──
+  function tick() {
+    time += 16;
+    scrollY += (targetScroll - scrollY) * 0.08;
+
+    // Measure scroll velocity → scrollActivity (fast attack, slow decay)
+    const dy = Math.abs(scrollY - lastScroll);
+    lastScroll = scrollY;
+    const target = Math.min(1, dy / 18);
+    if (target > scrollActivity) scrollActivity += (target - scrollActivity) * 0.18;
+    else                          scrollActivity += (target - scrollActivity) * 0.035;
+
+    ctx.clearRect(0, 0, W, H);
+    drawHelix();
+    drawCell();
+    requestAnimationFrame(tick);
+  }
+
+  window.addEventListener('resize', resize, { passive: true });
+  window.addEventListener('scroll', () => { targetScroll = window.scrollY; }, { passive: true });
+
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  resize();
+  scrollY = window.scrollY;
+  targetScroll = window.scrollY;
+  lastScroll = window.scrollY;
+  if (reduce) {
+    drawHelix();
+    drawCell();
+  } else {
+    requestAnimationFrame(tick);
+  }
+})();
+</script>
+
   <div class="container">
 
-    <img src="profile_image.jpeg" alt="Sadikshya Rijal" class="profile-img" />
+    <img src="profile_image.jpeg" alt="Sadikshya Rijal" class="profile-img">
     <h1>Hi, there!</h1>
 
     <h2 class="intro">
       I'm <span class="accent">Sadikshya</span>, and I like to <span class="accent">build</span> at the intersection of biology and engineering.
     </h2>
     <p class="intro-text">
-      I'm a PhD candidate in Biological Design at Arizona State University, where I work on synthetic gene circuits, CRISPR interference, and biomolecular condensates. Outside the lab, I help run Nucleate Arizona and enjoy mentoring early-career scientists.
+      I'm a PhD candidate in Biological Design at Arizona State University, where I work on synthetic gene circuits, CRISPR interference, and biomolecular condensates. Outside the lab, I help run <a href="https://nucleate.org/locations/arizona/" target="_blank" rel="noopener" style="color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent);">Nucleate Arizona</a> and enjoy mentoring early-career scientists.
     </p>
 
     <div class="layout">
@@ -187,7 +554,7 @@
           <li><a href="#about">About Me</a></li>
           <li><a href="#research">Research</a></li>
           <li><a href="#publications">Publications</a></li>
-          <li><a href="resume.pdf">Resume</a></li>
+          <li><a href="https://sadikshyarijal.com/sadikshya_resume.pdf">Resume</a></li>
           <li><a href="https://scholar.google.com/citations?user=i0OyIREAAAAJ">Scholar</a></li>
           <li><a href="https://linkedin.com/in/sadikshyarijal">LinkedIn</a></li>
         </ul>
@@ -202,7 +569,7 @@
           <p class="post-excerpt">
             Integrating dCas9 into the E. coli genome to implement CRISPR interference across two gene modules — mitigating winner-take-all resource competition and improving synthetic circuit predictability.
           </p>
-          <a href="https://doi.org/10.1101/2025.05.15.65435" class="read-more">Read More</a>
+          <a href="https://pubmed.ncbi.nlm.nih.gov/40462902/" class="read-more">Read More</a>
         </article>
 
         <article class="post" id="publications">
@@ -233,5 +600,5 @@
     </footer>
 
   </div>
-</body>
-</html>
+
+</body></html>
